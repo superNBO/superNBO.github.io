@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ViperSearch</title>
+    <style>
+        /* --- CSS Custom Properties & Themes --- */
+        :root[data-theme="dark"] {
+            --bg: #090d16;
+            --surface: #131b2e;
+            --surface-hover: #1c2843;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #22304a;
+            --border-focus: #10b981; /* Emerald Green for Viper Theme */
+            --accent: #10b981;
+            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+        }
+
+        :root[data-theme="light"] {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --surface-hover: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --border-focus: #059669;
+            --accent: #059669;
+            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* --- Top Controls Header --- */
+        .top-controls {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toggle-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.5rem 0.85rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: var(--shadow);
+            user-select: none;
+        }
+
+        .toggle-btn:hover {
+            border-color: var(--border-focus);
+            transform: translateY(-1px);
+        }
+
+        /* AI Toggle Active State */
+        .ai-btn.active {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .ai-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--text-secondary);
+        }
+
+        .ai-btn.active .ai-indicator {
+            background-color: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        /* --- Main Layout --- */
+        .container {
+            width: 100%;
+            max-width: 620px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .logo {
+            font-size: 3.25rem;
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 0.1rem;
+        }
+
+        .logo span {
+            color: var(--accent);
+        }
+
+        .tagline {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: -1.5rem;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        /* --- Search Bar Container --- */
+        .search-box-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        form {
+            width: 100%;
+        }
+
+        .input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1.25rem;
+            width: 20px;
+            height: 20px;
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 1.1rem 3.5rem 1.1rem 3.25rem;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            background-color: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            outline: none;
+            box-shadow: var(--shadow);
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--border-focus);
+        }
+
+        .kbd-hint {
+            position: absolute;
+            right: 1.25rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        /* --- Auto-Suggestions Dropdown --- */
+        .suggestions-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: none;
+            z-index: 10;
+        }
+
+        .suggestions-dropdown.active {
+            display: block;
+        }
+
+        .suggestion-item {
+            padding: 0.85rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .suggestion-item:hover,
+        .suggestion-item.selected {
+            background-color: var(--surface-hover);
+        }
+
+        .suggestion-item svg {
+            width: 16px;
+            height: 16px;
+            color: var(--text-secondary);
+        }
+
+        /* --- Quick Bang Shortcuts --- */
+        .bang-grid {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .bang-chip {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .bang-chip:hover {
+            border-color: var(--border-focus);
+            color: var(--text-primary);
+        }
+
+        .bang-chip b {
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+
+    <header class="top-controls">
+        <!-- AI Toggle Button -->
+        <button class="toggle-btn ai-btn" id="aiToggle" aria-label="Toggle AI Mode">
+            <span class="ai-indicator"></span>
+            <span id="aiLabel">AI Off</span>
+        </button>
+
+        <!-- Theme Toggle Button -->
+        <button class="toggle-btn" id="themeToggle" aria-label="Toggle Theme">
+            <span id="themeIcon">🌙</span>
+            <span id="themeLabel">Dark</span>
+        </button>
+    </header>
+
+    <main class="container">
+        <h1 class="logo">Viper<span>Search</span></h1>
+        <div class="tagline">Engineered for ViperWeb</div>
+
+        <div class="search-box-wrapper">
+            <form action="https://duckduckgo.com/" method="GET" id="searchForm">
+                <div class="input-group">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+
+                    <input
+                        type="text"
+                        name="q"
+                        id="searchInput"
+                        placeholder="Search web or type a !bang..."
+                        autofocus
+                        required
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+
+                    <input type="hidden" name="ia" value="web" id="iaField">
+                    <kbd class="kbd-hint" id="kbdHint">/</kbd>
+                </div>
+            </form>
+
+            <div class="suggestions-dropdown" id="suggestions"></div>
+        </div>
+
+        <div class="bang-grid">
+            <div class="bang-chip" onclick="insertBang('!w ')"><b>!w</b> Wikipedia</div>
+            <div class="bang-chip" onclick="insertBang('!yt ')"><b>!yt</b> YouTube</div>
+            <div class="bang-chip" onclick="insertBang('!gh ')"><b>!gh</b> GitHub</div>
+            <div class="bang-chip" onclick="insertBang('!r ')"><b>!r</b> Reddit</div>
+            <div class="bang-chip" onclick="insertBang('!g ')"><b>!g</b> Google</div>
+        </div>
+    </main>
+
+    <script>
+        const input = document.getElementById('searchInput');
+        const form = document.getElementById('searchForm');
+        const suggestionsBox = document.getElementById('suggestions');
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeLabel = document.getElementById('themeLabel');
+        const aiToggle = document.getElementById('aiToggle');
+        const aiLabel = document.getElementById('aiLabel');
+        const kbdHint = document.getElementById('kbdHint');
+
+        let selectedIndex = -1;
+        let isAiMode = false;
+
+        // --- 1. AI Toggle Handling ---
+        aiToggle.addEventListener('click', () => {
+            isAiMode = !isAiMode;
+            updateAiUI();
+        });
+
+        function updateAiUI() {
+            if (isAiMode) {
+                aiToggle.classList.add('active');
+                aiLabel.textContent = 'AI Mode';
+                input.placeholder = "Ask AI a question...";
+            } else {
+                aiToggle.classList.remove('active');
+                aiLabel.textContent = 'AI Off';
+                input.placeholder = "Search web or type a !bang...";
+            }
+        }
+
+        // Intercept form submission to apply AI query handling when enabled
+        form.addEventListener('submit', (e) => {
+            if (isAiMode) {
+                let query = input.value.trim();
+
+                // Route to DuckDuckGo AI search bang if it doesn't already contain one
+                if (!query.startsWith('!chat') && !query.startsWith('!ai')) {
+                    input.value = `!chat ${query}`;
+                }
+            }
+        });
+
+        // --- 2. Dynamic Auto-Suggestions ---
+        let debounceTimer;
+        input.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            const query = input.value.trim();
+
+            if (!query || query.startsWith('!')) {
+                hideSuggestions();
+                return;
+            }
+
+            debounceTimer = setTimeout(() => {
+                fetchSuggestions(query);
+            }, 150);
+        });
+
+        function fetchSuggestions(query) {
+            const oldScript = document.getElementById('ddg-jsonp');
+            if (oldScript) oldScript.remove();
+
+            window.autocompleteCallback = function(data) {
+                renderSuggestions(data);
+            };
+
+            const script = document.createElement('script');
+            script.id = 'ddg-jsonp';
+            script.src = `https://duckduckgo.com/ac/?q=${encodeURIComponent(query)}&callback=autocompleteCallback`;
+            document.body.appendChild(script);
+        }
+
+        function renderSuggestions(data) {
+            suggestionsBox.innerHTML = '';
+            selectedIndex = -1;
+
+            if (!data || data.length === 0) {
+                hideSuggestions();
+                return;
+            }
+
+            data.slice(0, 5).forEach((item) => {
+                const div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <span>${item.phrase}</span>
+                `;
+                div.addEventListener('click', () => {
+                    input.value = item.phrase;
+                    form.submit();
+                });
+                suggestionsBox.appendChild(div);
+            });
+
+            suggestionsBox.classList.add('active');
+        }
+
+        function hideSuggestions() {
+            suggestionsBox.classList.remove('active');
+            suggestionsBox.innerHTML = '';
+            selectedIndex = -1;
+        }
+
+        // --- 3. Keyboard Navigation ---
+        input.addEventListener('keydown', (e) => {
+            const items = suggestionsBox.querySelectorAll('.suggestion-item');
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    selectedIndex = (selectedIndex + 1) % items.length;
+                    updateSelection(items);
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+                    updateSelection(items);
+                }
+            } else if (e.key === 'Escape') {
+                hideSuggestions();
+                input.blur();
+            }
+        });
+
+        function updateSelection(items) {
+            items.forEach((item, index) => {
+                if (index === selectedIndex) {
+                    item.classList.add('selected');
+                    input.value = item.querySelector('span').innerText;
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        // Quick focus on "/" key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/' && document.activeElement !== input) {
+                e.preventDefault();
+                input.focus();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-box-wrapper')) {
+                hideSuggestions();
+            }
+        });
+
+        input.addEventListener('focus', () => { kbdHint.style.display = 'none'; });
+        input.addEventListener('blur', () => { if (!input.value) kbdHint.style.display = 'block'; });
+
+        // --- 4. Quick Bang Injector ---
+        function insertBang(bang) {
+            input.value = bang + input.value.replace(/^![a-z]+\s*/i, '');
+            input.focus();
+            hideSuggestions();
+        }
+
+        // --- 5. Theme Toggle Logic ---
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            if (theme === 'dark') {
+                themeIcon.textContent = '🌙';
+                themeLabel.textContent = 'Dark';
+            } else {
+                themeIcon.textContent = '☀️';
+                themeLabel.textContent = 'Light';
+            }
+            localStorage.setItem('viper_theme', theme);
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+
+        const savedTheme = localStorage.getItem('viper_theme');
+        if (savedTheme) {
+            setTheme(savedTheme);
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+            setTheme('light');
+        }
+    </script>
+</body>
+</html>
